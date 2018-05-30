@@ -21,7 +21,7 @@ if (!require(pacman)) {
   install.packages("pacman", repos = "http://cran.us.r-project.org")
   require(pacman)
 }
-p_load(tidyverse, readxl, knitr, data.table, zoo, ggridges)
+p_load(tidyverse, knitr, data.table, zoo, ggridges)
 
 p_load_gh("hrbrmstr/hrbrthemes")
 ```
