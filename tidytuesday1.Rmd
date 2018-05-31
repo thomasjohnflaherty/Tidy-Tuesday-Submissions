@@ -1,0 +1,63 @@
+---
+title: "Tidy Tuesday #1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman", repos = "http://cran.us.r-project.org")
+  require(pacman)
+}
+p_load(tidyverse, readxl, knitr, kableExtra, data.table, zoo, ggthemes, httr, noncensus, cowplot)
+
+p_load_gh("hrbrmstr/hrbrthemes")
+```
+
+```{r}
+data("states")
+
+path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/us_avg_tuition.xlsx"
+
+GET(path, write_disk(tf <- tempfile(fileext = ".xlsx")))
+
+dat <- read_excel(tf) %>%
+  mutate(Divsion = states[match(State, states$name), 4],
+         Region  = states[match(State, states$name), 3],
+         State   = states[match(State, states$name), 1]) %>%
+  gather(Year, Tuition, -c(State, Region, Divsion)) %>%
+  mutate(Year = as.numeric(gsub("-.*", "", Year)))
+
+unlink(tf)
+```
+
+```{r fig.height=4.5}
+st_plt <- function(df, divsion) {
+  df %>%
+    filter(Divsion == divsion) %>%
+    ggplot(aes(Year, Tuition, color = State, fill = State)) +
+    geom_line(stat = "identity", size = .8) +
+    ggtitle("", subtitle = divsion) +
+    theme_minimal() + 
+    ylim(c(3500,15500)) +
+    coord_fixed(ratio = .00065) +
+    xlab("") + ylab("")
+}
+
+plist <- lapply(levels(dat$Divsion), FUN = function(x) {st_plt(dat,x)})
+
+plot_grid(plotlist = plist, ncol = 3)
+```
