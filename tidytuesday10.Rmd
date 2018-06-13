@@ -1,0 +1,207 @@
+---
+title: "Tidy Tuesday #10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman", repos = "http://cran.us.r-project.org")
+  require(pacman)
+}
+p_load(MASS, knitr, data.table, zoo, httr, chron, tidyverse, timetk, tidyquant, tibbletime)
+
+p_load_gh("hrbrmstr/hrbrthemes")
+```
+
+# Tidy Tuesday: Week 10
+
+```{r}
+allcsv <- function(directory) {
+    names <- list.files(directory, pattern="*.csv", full.names=T)
+    x <- lapply(names, function(x) data.table::fread(x))
+    plyr::ldply(x, rbind)
+}
+
+dat <- allcsv("~/Documents/GitHub/Tidy-Tuesday-Submissions/Data/PublicTripData") %>%
+  mutate(StartDate = as.Date(StartDate, "%m/%d/%Y"),
+         EndDate   = as.Date(EndDate, "%m/%d/%Y"),
+         StartTime = chron(time = paste(StartTime,":00", sep = "")),
+         EndTime   = chron(time = paste(EndTime,":00", sep = "")),
+         Duration  = chron(time = Duration)) %>%
+  mutate_if(is.character, as.factor) %>%
+  filter(!is.na(RouteID))
+
+saveRDS(dat, "week10.rds")
+```
+
+## Inital Analysis
+
+```{r}
+d <- readRDS("week10.rds")
+
+d %>%
+  group_by(StartDate, PaymentPlan) %>%
+  summarise(Trips = n()) %>%
+  as_tbl_time(index = StartDate) %>%
+  ggplot(aes(StartDate, Trips, color = PaymentPlan)) +
+  geom_line() + 
+  theme_ipsum_rc()
+```
+
+## Model Training
+
+```{r}
+d <- readRDS("week10.rds")
+
+dat <- d %>%
+  group_by(StartDate, PaymentPlan) %>%
+  summarise(Trips = n()) %>%
+  rename(Date = StartDate) 
+
+idx <- dat %>% 
+  select(1) %>%
+  distinct(Date) %>%
+  tk_index() %>%
+  tk_make_future_timeseries(n_future = 180) %>%
+  tk_get_timeseries_signature() %>%
+  rename(Date = index,
+         Trips = index.num) %>%
+  mutate(Trips = NA) %>%
+  select(-3)
+```
+
+### Subscriber
+
+```{r}
+train_size = .75
+plan = "Subscriber"
+split <- first(dat$Date) + round(length(unique(dat$Date))*train_size)
+
+train <- dat %>%
+  filter(Date < split & PaymentPlan == plan) %>%
+  tk_augment_timeseries_signature() %>%
+  select(-c(2,4:5)) %>%
+  ungroup()
+
+test <- dat %>%
+  filter(Date >= split & PaymentPlan == plan) %>%
+  tk_augment_timeseries_signature() %>%
+  select(-c(2,4:5))
+
+ful <- lm(Trips ~ ., train)
+
+nul <- lm(Trips ~ 1, train)
+
+s <- step(ful,
+          direction = "both",
+          scope = list(upper = ful, 
+                       lower = nul),
+          trace = F)
+
+bc <- boxcox(s, plotit = F)
+
+trans <- bc$x[which.max(bc$y)]
+
+s <- train %>%
+  mutate(Trips = Trips^trans) %>%
+  lm(formula = s$call, .)
+
+frcst <- idx %>%
+  add_column(Forecast = predict(s, idx)) %>%
+  mutate(Forecast = Forecast^(1/trans))
+
+test %>%
+  add_column(Yhat = predict(s, test)) %>%
+  mutate(Yhat = Yhat^(1/trans)) %>%
+  bind_rows(train) %>%
+  bind_rows(frcst) %>%
+  select(1,2,29,30) %>%
+  rename(Train = Trips,
+         Test = Yhat) %>%
+  gather(Type, Trips, -Date) %>%
+  na.omit() %>%
+  ggplot(aes(Date, Trips, color = Type)) +
+  geom_point(alpha = .5) +
+  geom_line(alpha = .2) +
+  labs(title = paste("BIKETOWN Modeling \nRider Type:", plan, "Trips per Day"),
+       subtitle = "Training, Test Validation & Forecasting",
+       caption = "Train data source: https://www.biketownpdx.com/system-data") +
+  scale_color_tq() +
+  theme_ipsum_rc()
+```
+
+### Casual
+
+```{r}
+train_size = .75
+plan = "Casual"
+split <- first(dat$Date) + round(length(unique(dat$Date))*train_size)
+
+train <- dat %>%
+  filter(Date < split & PaymentPlan == plan) %>%
+  tk_augment_timeseries_signature() %>%
+  select(-c(2,4:5)) %>%
+  ungroup()
+
+test <- dat %>%
+  filter(Date >= split & PaymentPlan == plan) %>%
+  tk_augment_timeseries_signature() %>%
+  select(-c(2,4:5))
+
+ful <- lm(Trips ~ ., train, na.action = na.omit)
+
+nul <- lm(Trips ~ 1, train, na.action = na.omit)
+
+s <- step(ful,
+          direction = "both",
+          scope = list(upper = ful, 
+                       lower = nul),
+          trace = F)
+
+bc <- boxcox(s, plotit = F)
+
+trans <- bc$x[which.max(bc$y)]
+
+s <- train %>%
+  mutate(Trips = Trips^trans) %>%
+  lm(formula = s$call, .)
+
+frcst <- idx %>%
+  add_column(Forecast = predict(s, idx)) %>%
+  mutate(Forecast = Forecast^(1/trans))
+
+test %>%
+  add_column(Yhat = predict(s, test)) %>%
+  mutate(Yhat = Yhat^(1/trans)) %>%
+  bind_rows(train) %>%
+  bind_rows(frcst) %>%
+  select(1,2,29,30) %>%
+  rename(Train = Trips,
+         Test = Yhat) %>%
+  gather(Type, Trips, -Date) %>%
+  na.omit() %>%
+  ggplot(aes(Date, Trips, color = Type)) +
+  geom_point(alpha = .5) +
+  geom_line(alpha = .2) +
+  labs(title = paste("BIKETOWN Modeling \nRider Type:", plan, "Trips per Day"),
+       subtitle = "Training, Test Validation & Forecasting",
+       caption = "Train data source: https://www.biketownpdx.com/system-data") +
+  scale_color_tq() +
+  theme_ipsum_rc()
+```
+
+
