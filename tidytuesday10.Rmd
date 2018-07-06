@@ -22,7 +22,7 @@ if (!require(pacman)) {
   install.packages("pacman", repos = "http://cran.us.r-project.org")
   require(pacman)
 }
-p_load(MASS, knitr, data.table, zoo, httr, chron, tidyverse, timetk, tidyquant, tibbletime)
+p_load(MASS, knitr, data.table, zoo, httr, chron, ggridges, tidyverse, timetk, tidyquant, tibbletime, epitools)
 
 p_load_gh("hrbrmstr/hrbrthemes")
 ```
@@ -68,8 +68,7 @@ d %>%
 d <- readRDS("week10.rds")
 
 dat <- d %>%
-  group_by(StartDate, PaymentPlan) %>%
-  summarise(Trips = n()) %>%
+  group_by(StartDate, Duration) %>%
   rename(Date = StartDate) 
 
 idx <- dat %>% 
@@ -102,9 +101,9 @@ test <- dat %>%
   tk_augment_timeseries_signature() %>%
   select(-c(2,4:5))
 
-ful <- lm(Trips ~ ., train)
+ful <- lm(Duration ~ ., train)
 
-nul <- lm(Trips ~ 1, train)
+nul <- lm(Duration ~ 1, train)
 
 s <- step(ful,
           direction = "both",
@@ -162,9 +161,9 @@ test <- dat %>%
   tk_augment_timeseries_signature() %>%
   select(-c(2,4:5))
 
-ful <- lm(Trips ~ ., train, na.action = na.omit)
+ful <- lm(Duration ~ ., train, na.action = na.omit)
 
-nul <- lm(Trips ~ 1, train, na.action = na.omit)
+nul <- lm(Duration ~ 1, train, na.action = na.omit)
 
 s <- step(ful,
           direction = "both",
@@ -177,7 +176,7 @@ bc <- boxcox(s, plotit = F)
 trans <- bc$x[which.max(bc$y)]
 
 s <- train %>%
-  mutate(Trips = Trips^trans) %>%
+  mutate(Duration = Duration^trans) %>%
   lm(formula = s$call, .)
 
 frcst <- idx %>%
@@ -190,11 +189,11 @@ test %>%
   bind_rows(train) %>%
   bind_rows(frcst) %>%
   select(1,2,29,30) %>%
-  rename(Train = Trips,
+  rename(Train = Duration,
          Test = Yhat) %>%
-  gather(Type, Trips, -Date) %>%
+  gather(Type, Duration, -Date) %>%
   na.omit() %>%
-  ggplot(aes(Date, Trips, color = Type)) +
+  ggplot(aes(Date, Duration, color = Type)) +
   geom_point(alpha = .5) +
   geom_line(alpha = .2) +
   labs(title = paste("BIKETOWN Modeling \nRider Type:", plan, "Trips per Day"),
@@ -204,4 +203,30 @@ test %>%
   theme_ipsum_rc()
 ```
 
+## Outtakes
 
+```{r}
+d %>% 
+  select(StartDate, PaymentPlan, Duration) %>%
+  mutate(Week = as.week(StartDate)$stratum3) %>%
+  na.omit() %>%
+  ggplot(aes(x = Duration * 24,
+             y = Week,
+             group = paste(Week, PaymentPlan), 
+             fill = PaymentPlan)) + 
+  geom_density_ridges(scale = 20, 
+                      size = 0.05, 
+                      rel_min_height = 0.0001, 
+                      alpha = .5) +
+  xlim(c(0,2.5)) +
+  # scale_y_reverse(breaks = c(2000, 1980, 1960, 1940), 
+  #                 expand = c(0.01, 0)) +
+  # ggtitle("Male vs. Female: New Characters",
+  #         subtitle = "1936 to 2013") +
+  # xlab("New Characters") +
+  theme_ipsum_rc(base_size = 14, 
+                 plot_title_size = 30) +
+  theme(legend.position = c(.9,.9),
+        legend.background = element_rect()) + 
+  scale_fill_tq()
+```
