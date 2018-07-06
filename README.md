@@ -11,6 +11,10 @@ Average tuition by division and state.
 
 ### Week 2
 
+American football salaries by position and year.
+
+![Week 2](tt2_bp.png)
+
 ### Week 3
 
 ### Week 4
