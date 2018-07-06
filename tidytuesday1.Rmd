@@ -4,12 +4,8 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      message = FALSE, 
-                      warning = FALSE, 
-                      dpi = 144,
-                      fig.align = "center")
 remove(list = ls(all.names = TRUE))
+
 detachAllPackages <- function() {
   basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
   basic.packages <- paste("package:", basic.packages.blank, sep = "")
@@ -17,7 +13,9 @@ detachAllPackages <- function() {
   package.list <- setdiff(package.list, basic.packages)
   if (length(package.list) > 0)  for (package in package.list) {
     detach(package, character.only = TRUE)}}
+
 detachAllPackages()
+
 if (!require(pacman)) {
   install.packages("pacman", repos = "http://cran.us.r-project.org")
   require(pacman)
@@ -25,6 +23,12 @@ if (!require(pacman)) {
 p_load(tidyverse, readxl, knitr, kableExtra, data.table, zoo, ggthemes, httr, noncensus, cowplot)
 
 p_load_gh("hrbrmstr/hrbrthemes")
+
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
 ```
 
 ```{r}
