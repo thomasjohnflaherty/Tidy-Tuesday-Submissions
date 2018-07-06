@@ -11,6 +11,10 @@ Average tuition by division and state.
 
 ### Week 2
 
+American football salaries by position and year.
+
+![Week 2](tt2_bp.png)
+
 ### Week 3
 
 ### Week 4
@@ -28,3 +32,11 @@ Average tuition by division and state.
 Comicbook characters.
 
 ![Week 9](tt9_ggridges.png)
+
+### Week 10
+
+BIKETOWN
+
+![Week 1](tt10_cas.png)
+
+![Week 1](tt10_sub.png)
