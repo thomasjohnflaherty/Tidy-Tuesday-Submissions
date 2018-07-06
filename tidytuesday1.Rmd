@@ -31,6 +31,8 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.align = "center")
 ```
 
+# Get Data
+
 ```{r}
 data("states")
 
@@ -47,6 +49,8 @@ dat <- read_excel(tf) %>%
 
 unlink(tf)
 ```
+
+# Plot Data!
 
 ```{r fig.height=4.5}
 st_plt <- function(df, divsion) {
