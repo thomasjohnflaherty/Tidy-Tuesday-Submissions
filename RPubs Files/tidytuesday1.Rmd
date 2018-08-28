@@ -57,7 +57,8 @@ dat <- read_excel(tf) %>%
          State   = states[match(State, states$name), 1]) %>%
   gather(Year, Tuition, -c(State, Region, Divsion)) %>%
   mutate(Year = as.numeric(gsub("-.*", "", Year))) %>%
-  mutate_if(is.numeric, round, digits=3)
+  mutate_if(is.numeric, round, digits=3) %>%
+  {.}
 
 unlink(tf)
 ```
@@ -91,13 +92,6 @@ hc_st_plt <- function(df, divsion) {
     hchart("spline", hcaes(x = Year, y = Tuition, group = State)) %>%
     hc_tooltip(crosshairs = TRUE, shared = TRUE)
 }
-
-dat %>%
-  filter(Divsion == "East North Central") %>%
-  mutate(date = ymd(Year, truncated = 2L)) %>%
-  select(1,5,6) %>%
-  spread(State, Tuition) %>%
-  tk_ts(silent = T) -> hcxts
 ```
 
 ```{r, echo=F}

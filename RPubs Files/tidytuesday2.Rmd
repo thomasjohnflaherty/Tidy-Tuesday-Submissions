@@ -1,9 +1,19 @@
 ---
 title: "Tidy Tuesday #2"
-output: html_document
+author: "NFL Stuff"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
 ---
 
-```{r setup, include=FALSE}
+# Code
+
+## {.tabset .tabset-fade}
+
+### Setup
+
+```{r setup, message=F}
 remove(list = ls(all.names = TRUE))
 
 detachAllPackages <- function() {
@@ -16,29 +26,29 @@ detachAllPackages <- function() {
 
 detachAllPackages()
 
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 144, fig.align = "center")
+
+computeComments = function(...) return(x[1])
+```
+
+```{r, echo=T, message=F, warning=F}
 if (!require(pacman)) {
-  install.packages("pacman", repos = "http://cran.us.r-project.org")
+  install.packages("pacman")
   require(pacman)
 }
 
-p_load(tidyverse, readxl, knitr, httr, cowplot, viridis)
+p_load(lubridate, timetk, tidyverse, knitr, ggthemes, httr, noncensus, cowplot, readxl, flexdashboard, viridis)
 
-p_load_gh("hrbrmstr/hrbrthemes")
+p_load_gh("hrbrmstr/hrbrthemes","jbkunst/highcharter")
 
-knitr::opts_chunk$set(echo = TRUE, 
-                      message = FALSE, 
-                      warning = FALSE, 
-                      dpi = 144,
-                      fig.align = "center")
-```
-
-# Get Data 
-
-```{r}
 path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/tidy_tuesday_week2.xlsx"
 
 GET(path, write_disk(tf <- tempfile(fileext = ".xlsx")))
+```
 
+### Manipulation
+
+```{r}
 dat <- read_excel(tf) %>%
   gather(Position, Salary, -year) %>%
   na.omit() %>%
@@ -51,28 +61,35 @@ dat <- read_excel(tf) %>%
 unlink(tf)
 ```
 
-# Plot Data!
+### ggplot2
 
-```{r}
+##
+
+```{r, eval=F, echo=T}
 dat %>%
   filter(Position %in% levels(dat$Position)[1:5]) %>%
   ggplot(aes(Position, Salary, fill = Year)) +
   geom_boxplot(outlier.size = .3) + 
   xlab("") +
   ylab("Salary (in millions of dollars)") +
-  theme_ipsum_rc() +
+  theme_minimal() +
   ylim(c(.024000, 37)) + 
   scale_fill_viridis(discrete = T) +
   theme(legend.position = "none") + 
-  ggtitle("NFL Positional Salaries", subtitle = "Source: Spotrac.com") %>%
+  ggtitle("NFL Positional Salaries", 
+          subtitle = "Source: Spotrac.com") %>%
   {.} -> p1
+```
 
+##
+
+```{r, eval=F, echo=T}
 dat %>%
   filter(Position %in% levels(dat$Position)[6:10]) %>%
   ggplot(aes(Position, Salary, fill = Year)) +
   geom_boxplot(outlier.size = .3) +
   ylab("") + 
-  theme_ipsum_rc() +
+  theme_minimal() +
   ylim(c(.024000, 37)) +
   scale_fill_viridis(discrete = T) + 
   theme(legend.position = "bottom") %>%
