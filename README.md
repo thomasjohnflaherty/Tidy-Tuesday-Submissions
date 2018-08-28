@@ -5,9 +5,11 @@ My submissions for #tidytuesday
 
 ### Week 1
 
-Average tuition by division and state.
+Average tuition by division and state. 
 
 ![Week 1](tt1_facet.png)
+
+[Check out the dashboard!](http://rpubs.com/tomasu/tidytuesday1)
 
 ### Week 2
 
@@ -16,6 +18,12 @@ American football salaries by position and year.
 ![Week 2](tt2_bp.png)
 
 ### Week 3
+
+Yearly mortality percent change on average by country and continent from 1990 to 2016.
+
+![Week 3](tt3.png)
+
+[Check out the dashboard!](http://rpubs.com/tomasu/tidytuesday3)
 
 ### Week 4
 
