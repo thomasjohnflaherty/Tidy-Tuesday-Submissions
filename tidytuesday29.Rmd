@@ -1,0 +1,56 @@
+---
+title: "Tidy Tuesday #29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+p_load(knitr, tidyverse, data.table, viridis)
+
+p_load_gh("hrbrmstr/hrbrthemes", "yonicd/carbonate")
+```
+
+# Tidy Tuesday: Week 29
+
+```{r}
+path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-10-16/recent-grads.csv"
+
+        fread(path) %>% 
+          group_by(Major_category) %>%
+          summarise(Women = sum(Women, na.rm = T),
+                    Men = sum(Men, na.rm = T),
+                    Total = Men + Women) %>%
+          mutate_if(is.numeric, funs(./Total*100)) %>% 
+          arrange(desc(Men)) %>%
+          mutate(Major_category = factor(Major_category, levels = unique(Major_category))) %>%
+          select(-Total) %>%
+          gather(Sex, Percent, -Major_category) %>%
+          ggplot(aes(Major_category, Percent, fill = Sex)) +
+          geom_bar(stat = "identity", position = "stack") +
+          coord_flip() + 
+          theme_ipsum_rc() + 
+          labs(x = "Field",
+               title = "College Majors",
+               subtitle = "Percentage by Women & Men",
+               caption = "Source: FiveThirtyEight.com")
+
+
+```
+

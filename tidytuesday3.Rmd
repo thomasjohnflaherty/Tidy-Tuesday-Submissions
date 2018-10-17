@@ -31,7 +31,7 @@ if (!require(pacman)) {
 
 p_load(knitr, httr, noncensus, readxl, flexdashboard, viridis, crosstalk, DT, raster, tidyverse)
 
-p_load_gh("jbkunst/highcharter")
+p_load_gh("jbkunst/highcharter", "yonicd/carbonate")
 
 color_from_middle <- function (data, color1,color2) 
 {
@@ -49,19 +49,15 @@ color_from_middle <- function (data, color1,color2)
 path <- "~/Documents/GitHub/tidytuesday/data/2018-04-16/global_mortality.xlsx"
 
 dat <- read_excel(path) %>%
-  mutate_if(is.numeric, 
-            funs(if_else(is.na(.), 0, .))) %>%
+  mutate_if(is.numeric, funs(replace(., is.na(.), 0))) %>%
   group_by(country) %>%
-  select(-3) %>%
-  summarise_if(is.numeric, 
-               funs(round(lm(. ~ c(1:27))$coeff[[2]], 3))) %>%
+  select(-year) %>%
+  summarise_if(is.numeric, funs(round(lm(. ~ c(1:27))$coeff[[2]], 3))) %>%
   gather(Stat, Value, -country) %>%
   mutate(Continent = ccodes()[match(country, ccodes()$NAME), 9],
          Stat = gsub(".[[:punct:]]", "", Stat)) %>%
-  mutate_if(is.character, as.factor) %>%
   select(1,2,4,3) %>%
   na.omit() %>%
-  droplevels() %>%
   arrange(desc(Value)) %>%
   {.}
 
