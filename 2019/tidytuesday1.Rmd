@@ -1,0 +1,84 @@
+---
+title: "Tidy Tuesday #1 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+p_load(knitr, data.table, lubridate, zoo, timetk)
+
+p_load_gh("hrbrmstr/hrbrthemes", update = F)
+```
+
+# Tidy Tuesday: Week 29
+
+```{r}
+githubURL <- ("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-01-01/rstats_tweets.rds")
+download.file(githubURL,"dat.rds", method="curl")
+df <- readRDS("dat.rds")
+
+top10 <- df %>%
+  group_by(source) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  head(10) %>%
+  pull(source)
+
+dt <- tibble(date = seq(min(as.Date(df$created_at)), 
+                        max(as.Date(df$created_at)), 
+                        by = "days"))
+
+dat <- df %>%
+  select(date = 3,6) %>% 
+  filter(source %in% top10) %>% 
+  mutate(date = as.Date(date)) %>% 
+  right_join(dt) %>% 
+  mutate(source = ifelse(is.na(source), "None", source),
+         source = factor(source, levels = c(top10, "None"))) %>% 
+  group_by(date, source) %>% 
+  summarise(tweets = n())
+
+l_dat <- dat %>% 
+  spread(source, tweets, fill = 0) %>% 
+  select(-None) %>% 
+  ungroup() %>% 
+  gather(source, tweets, -date) %>% 
+  mutate(date = as.Date(as.yearmon(date))) %>% 
+  group_by(date, source) %>% 
+  summarise(tweets = sum(tweets))
+  #tk_xts(silent = T) %>% 
+  
+
+highchart(type = "stock") %>% 
+  hc_add_series(dat$`Twitter Web Client`, name = "Twitter Web Client") %>%
+  hc_add_series(dat$`Twitter for iPhone`) %>%
+  hc_add_series(dat$`Twitter for Android`) %>% 
+  hc_add_theme(hc_theme_smpl())
+
+hchart(l_dat, "line", hcaes(date, tweets, group = source)) %>% 
+  hc_tooltip(table = T) %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_legend(align = "right", 
+            verticalAlign = "top",
+            layout = "vertical")
+```
+
+
+

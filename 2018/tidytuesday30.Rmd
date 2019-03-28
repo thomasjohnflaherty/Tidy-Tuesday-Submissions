@@ -1,0 +1,73 @@
+---
+title: "Tidy Tuesday #29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+p_load(knitr, data.table, viridis, carbonate, lubridate, zoo, MASS, caret, tidyverse, e1071, highcharter, update = F)
+
+p_load_gh("hrbrmstr/hrbrthemes", update = F)
+```
+
+# Tidy Tuesday: Week 29
+
+```{r}
+path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-10-23/movie_profit.csv"
+
+df <- read_csv(path)
+
+top10 <- df %>%
+  group_by(distributor) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  select(distributor) %>%
+  head(10) %>%
+  unlist()
+
+dat <- df %>%
+  mutate(release_date = as.Date(release_date, format = "%m/%d/%Y"),
+         month = month(release_date, label = T),
+         year = year(release_date)) %>%
+  select(-(1:3)) %>%
+  filter(distributor %in% top10) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(mpaa_rating = fct_explicit_na(mpaa_rating, "None"),
+         month = factor(month, levels = month.abb))
+
+m1 <- lm(worldwide_gross ~ . - domestic_gross - month, dat)
+m2 <- lm()
+
+summary(m1)
+```
+
+```{r}
+folds <- sample(rep(1:10, length.out = nrow(dat)), size = nrow(dat), replace = F)
+
+CV_lda <- lapply(1:10, function(x){ 
+  model <- lda(genre ~ ., dat[folds != x, ])
+  preds <- predict(model,  dat[folds == x,], type="response")$class
+  return(data.frame(preds, real = dat$genre[folds == x]))
+})
+
+CV_lda <- do.call(rbind, CV_lda)
+confusionMatrix(CV_lda$preds, CV_lda$real)
+```
+
