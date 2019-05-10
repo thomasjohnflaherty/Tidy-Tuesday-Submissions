@@ -47,7 +47,7 @@ p_load(gganimate, janitor, tidyverse, imputeTS, gifski, hrbrthemes, scales)
 ```
 
 ```{r}
-path <- "C:/Users/tflaherty/Downloads/EDULIT_DS_10052019145625752.csv"
+path <- "https://raw.githubusercontent.com/tomasu909/Tidy-Tuesday-Submissions/master/Data/EDULIT_DS_10052019145625752.csv"
 
 df <- read_csv(path) %>% 
   clean_names() %>% 
@@ -65,7 +65,7 @@ df <- read_csv(path) %>%
   complete(country, year, fill = list(student_ratio = NA)) %>%
   arrange(country, year) %>% 
   group_by(country) %>% 
-  filter(sum(is.na(student_ratio)) < 20) %>% 
+  filter(sum(is.na(student_ratio)) < 25) %>% 
   mutate(student_ratio = na.kalman(student_ratio)) %>% 
   ungroup() %>% 
   nest(-country) %>%
@@ -77,14 +77,14 @@ df <- read_csv(path) %>%
   group_by(year) %>% 
   mutate(rank = row_number()) %>% 
   ungroup() %>% 
-  #filter(rank <= 10) %>% 
+  filter(rank <= 10) %>% 
   nowt()
 ```
 
 ```{r}
 df %>%
   ggplot(aes(x = -rank, y = student_ratio, group = country)) +
-  geom_tile(aes(y = student_ratio / 2, height = student_ratio), width = 0.9, show.legend = F) +
+  geom_tile(aes(y = student_ratio / 2, height = student_ratio), width = 0.9, alpha = .75) +
   geom_text(aes(label = country),
     hjust = "right",
     colour = "white",
@@ -94,7 +94,7 @@ df %>%
   geom_text(aes(label = number(student_ratio, .01)),
     hjust = "left",
     nudge_y = .35,
-    colour = tc[6]
+    colour = "#38BAB6"
   ) +
   coord_flip(clip = "off") +
   scale_x_discrete("") +
