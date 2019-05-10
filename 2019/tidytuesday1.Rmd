@@ -22,23 +22,28 @@ if (!require(pacman)) {
   install.packages("pacman")
   require(pacman)
 }
-p_load(knitr, data.table, lubridate, zoo, timetk)
+p_load(tidyverse, knitr, data.table, lubridate, zoo, timetk, hrbrthemes, highcharter)
 
-p_load_gh("hrbrmstr/hrbrthemes", update = F)
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
 ```
 
-# Tidy Tuesday: Week 29
+# Tidy Tuesday: Week 1 2019
 
 ```{r}
 githubURL <- ("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-01-01/rstats_tweets.rds")
 download.file(githubURL,"dat.rds", method="curl")
 df <- readRDS("dat.rds")
 
-top10 <- df %>%
+top5 <- df %>%
   group_by(source) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total)) %>%
-  head(10) %>%
+  head(5) %>%
   pull(source)
 
 dt <- tibble(date = seq(min(as.Date(df$created_at)), 
@@ -47,13 +52,14 @@ dt <- tibble(date = seq(min(as.Date(df$created_at)),
 
 dat <- df %>%
   select(date = 3,6) %>% 
-  filter(source %in% top10) %>% 
+  filter(source %in% top5) %>% 
   mutate(date = as.Date(date)) %>% 
   right_join(dt) %>% 
   mutate(source = ifelse(is.na(source), "None", source),
-         source = factor(source, levels = c(top10, "None"))) %>% 
+         source = factor(source, levels = c(top5, "None"))) %>% 
   group_by(date, source) %>% 
-  summarise(tweets = n())
+  summarise(tweets = n()) %>% 
+  nowt()
 
 l_dat <- dat %>% 
   spread(source, tweets, fill = 0) %>% 
@@ -62,22 +68,17 @@ l_dat <- dat %>%
   gather(source, tweets, -date) %>% 
   mutate(date = as.Date(as.yearmon(date))) %>% 
   group_by(date, source) %>% 
-  summarise(tweets = sum(tweets))
-  #tk_xts(silent = T) %>% 
-  
-
-highchart(type = "stock") %>% 
-  hc_add_series(dat$`Twitter Web Client`, name = "Twitter Web Client") %>%
-  hc_add_series(dat$`Twitter for iPhone`) %>%
-  hc_add_series(dat$`Twitter for Android`) %>% 
-  hc_add_theme(hc_theme_smpl())
+  summarise(tweets = sum(tweets)) %>% 
+  # tk_xts(silent = T) %>% 
+  nowt()
 
 hchart(l_dat, "line", hcaes(date, tweets, group = source)) %>% 
   hc_tooltip(table = T) %>% 
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_legend(align = "right", 
             verticalAlign = "top",
-            layout = "vertical")
+            layout = "vertical") %>% 
+  hc_exporting(enabled = TRUE)
 ```
 
 

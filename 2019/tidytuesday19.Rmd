@@ -1,0 +1,114 @@
+---
+title: "Student / Teacher Ratios"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+options(repos='http://cran.rstudio.com/')
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <- c(
+    "stats",
+    "graphics",
+    "grDevices",
+    "utils",
+    "datasets",
+    "methods",
+    "base"
+  )
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0) {
+    for (package in package.list) {
+      detach(package, character.only = TRUE)
+    }
+  }
+}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
+
+extrafont::loadfonts(quiet = T)
+
+tc <- c("#A5143F", "#E5350F", "#E67F18", "#F5BD0E", "#8BDEFC", "#38BAB6", "#234C68", "#4B3460")
+
+p_load(gganimate, janitor, tidyverse, imputeTS, gifski, hrbrthemes, scales)
+```
+
+```{r}
+path <- "C:/Users/tflaherty/Downloads/EDULIT_DS_10052019145625752.csv"
+
+df <- read_csv(path) %>% 
+  clean_names() %>% 
+  mutate(indicator = str_remove(indicator, "Pupil-teacher ratio in"),
+         indicator = str_remove(indicator, "(headcount basis)"),
+         indicator = str_remove(indicator, "\\(\\)"),
+         indicator = str_trim(indicator),
+         indicator = stringr::str_to_title(indicator),
+         location = as.numeric(location)) %>% 
+  rename("student_ratio" = value,
+         "year" = time) %>% 
+  filter(indicator == "Primary Education" &
+         is.na(location)) %>%
+  select(country, year, student_ratio) %>%
+  complete(country, year, fill = list(student_ratio = NA)) %>%
+  arrange(country, year) %>% 
+  group_by(country) %>% 
+  filter(sum(is.na(student_ratio)) < 20) %>% 
+  mutate(student_ratio = na.kalman(student_ratio)) %>% 
+  ungroup() %>% 
+  nest(-country) %>%
+  mutate(data = map(data, ~ .x %>% 
+                      complete(year = full_seq(year, 1/3)) %>% 
+                      mutate(student_ratio = na.interpolation(student_ratio, option = "linear")))) %>% 
+  unnest() %>% 
+  arrange(student_ratio) %>% 
+  group_by(year) %>% 
+  mutate(rank = row_number()) %>% 
+  ungroup() %>% 
+  #filter(rank <= 10) %>% 
+  nowt()
+```
+
+```{r}
+df %>%
+  ggplot(aes(x = -rank, y = student_ratio, group = country)) +
+  geom_tile(aes(y = student_ratio / 2, height = student_ratio), width = 0.9, show.legend = F) +
+  geom_text(aes(label = country),
+    hjust = "right",
+    colour = "white",
+    nudge_y = -.5,
+    fontface = "bold"
+  ) +
+  geom_text(aes(label = number(student_ratio, .01)),
+    hjust = "left",
+    nudge_y = .35,
+    colour = tc[6]
+  ) +
+  coord_flip(clip = "off") +
+  scale_x_discrete("") +
+  scale_y_continuous("", labels = number) +
+  theme_ipsum_rc() + 
+  transition_time(year) +
+  labs(
+    title = "Primary Education: Student/Teacher Ratio by Country",
+    subtitle = "{round(frame_time,0)}",
+    caption = "A lower value indicates fewer students per teacher."
+  ) -> p
+
+animate(p, nframes = 1000, fps = 24, end_pause = 100)
+
+anim_save("primary.gif")
+```
+
