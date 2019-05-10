@@ -84,7 +84,7 @@ df <- read_csv(path) %>%
 ```{r}
 df %>%
   ggplot(aes(x = -rank, y = student_ratio, group = country)) +
-  geom_tile(aes(y = student_ratio / 2, height = student_ratio), width = 0.9, alpha = .75) +
+  geom_tile(aes(y = student_ratio / 2, height = student_ratio), width = 0.9) +
   geom_text(aes(label = country),
     hjust = "right",
     colour = "white",
@@ -98,8 +98,9 @@ df %>%
   ) +
   coord_flip(clip = "off") +
   scale_x_discrete("") +
-  scale_y_continuous("", labels = number) +
   theme_ipsum_rc() + 
+  scale_fill_manual(values = "#303030") +
+  scale_y_continuous("", labels = number) +
   transition_time(year) +
   labs(
     title = "Primary Education: Student/Teacher Ratio by Country",
