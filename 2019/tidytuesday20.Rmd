@@ -1,0 +1,106 @@
+---
+title: "Student / Teacher Ratios"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+options(repos='http://cran.rstudio.com/')
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <- c(
+    "stats",
+    "graphics",
+    "grDevices",
+    "utils",
+    "datasets",
+    "methods",
+    "base"
+  )
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0) {
+    for (package in package.list) {
+      detach(package, character.only = TRUE)
+    }
+  }
+}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
+
+extrafont::loadfonts(quiet = T)
+
+tc <- c("#A5143F", "#E5350F", "#E67F18", "#F5BD0E", "#8BDEFC", "#38BAB6", "#234C68", "#4B3460")
+
+p_load(gganimate, janitor, tidyverse, imputeTS, gifski, hrbrthemes, scales)
+```
+
+```{r}
+path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-05-14/nobel_winners.csv"
+
+x <- "Economics"
+
+read_csv(path) %>%
+  clean_names() %>%
+  select(1:11) %>%
+  distinct() %>%
+  filter(laureate_type == "Individual" &
+    category == x) %>%
+  nest(-birth_country) %>%
+  filter(map(data, ~ nrow(.x)) > 2) %>%
+  mutate(data = map(data, ~ .x %>%
+    group_by(prize_year) %>%
+    summarise(n = n()) %>%
+    mutate(total = cumsum(n)) %>%
+    ungroup() %>%
+    full_join(tibble(prize_year = 1969:2016)) %>%
+    arrange(prize_year) %>%
+    complete(prize_year = full_seq(prize_year, .5)) %>%
+    mutate(total = na.interpolation(total, option = "linear")) %>%
+    select(-n))) %>%
+  unnest() %>%
+  arrange(desc(total)) %>%
+  group_by(prize_year) %>%
+  mutate(rank = row_number()) %>%
+  ungroup() %>%
+  filter(rank <= 10) %>%
+  ggplot(aes(x = -rank, y = total, group = birth_country)) +
+  geom_tile(aes(y = total / 2, height = total), width = 0.9, fill = "#cccccc") +
+  geom_text(aes(label = birth_country),
+    hjust = "right",
+    colour = "#234C68",
+    nudge_y = -1,
+    fontface = "bold"
+  ) +
+  geom_text(aes(label = number(total)),
+    hjust = "left",
+    nudge_y = .5,
+    colour = "#38BAB6"
+  ) +
+  coord_flip(clip = "off") +
+  scale_x_discrete("") +
+  scale_y_continuous("", labels = number) +
+  theme_ipsum_rc() +
+  transition_time(prize_year) +
+  labs(
+    title = paste(x, ": Individual Nobel Laureates by Country", sep = ""),
+    subtitle = "{round(frame_time,0)}",
+    caption = "Country refers to country of birth."
+  ) -> p
+
+animate(p, nframes = 450, fps = 24, end_pause = 100)
+
+anim_save(paste(x, ".gif", sep = ""))
+```
+
