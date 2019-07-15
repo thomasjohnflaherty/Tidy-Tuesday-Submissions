@@ -27,6 +27,8 @@ Yearly mortality percent change on average by country and continent from 1990 to
 
 ### Week 4
 
+![Week 4](tt_4.png)
+
 ### Week 5
 
 ### Week 6
