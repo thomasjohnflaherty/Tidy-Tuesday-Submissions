@@ -1,0 +1,94 @@
+---
+title: "Women's World Cup"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+options(repos='http://cran.rstudio.com/',
+        scipen=10000)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <- c(
+    "stats",
+    "graphics",
+    "grDevices",
+    "utils",
+    "datasets",
+    "methods",
+    "base"
+  )
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0) {
+    for (package in package.list) {
+      detach(package, character.only = TRUE)
+    }
+  }
+}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
+
+extrafont::loadfonts(quiet = T)
+
+tc <- c("#A5143F", "#E5350F", "#E67F18", "#F5BD0E", "#8BDEFC", "#38BAB6", "#234C68", "#4B3460")
+
+p_load(janitor, tidyverse, hrbrthemes, scales, skimr, magrittr)
+
+p_load_gh("thebioengineer/tidytuesdayR")
+```
+
+```{r}
+tt_load(2018, week = 4) %>% 
+  map(~list2env(.x[1], envir = .GlobalEnv))
+```
+
+```{r}
+week4_australian_salary %<>% 
+  mutate(occupation = iconv(occupation, from="Windows-1252", to="UTF-8")) %>% 
+  select(-X1)
+```
+
+```{r}
+week4_australian_salary %>% 
+  ggplot(aes(individuals, average_taxable_income)) + 
+  stat_density2d(
+    aes(alpha = ..level..,
+        color = gender), 
+    geom = "density2d", 
+    show.legend = F,
+    size = .75, 
+    linetype = 1
+  ) +
+  geom_point(
+    aes(alpha = .1, 
+        color = gender), 
+    show.legend = T,
+    size = 1) + 
+  scale_y_log10(
+    name = "Average Taxable Income", 
+    labels = scales::dollar_format(scale = .001, suffix = "K", accuracy = 1)) + 
+  scale_x_log10(
+    name = "Individuals", 
+    labels = scales::comma) +
+  labs(
+    title = "Australian Salaries by Gender",
+    caption = "Source: data.gov.au"
+  ) +
+  scale_color_manual(values = tc[c(3,6)], labels = c("M", "F")) +
+  theme_ft_rc() -> p
+
+ggsave(p, filename = "tt_4.png",device = "png", dpi = 144, width = 8, height = 6)
+```
+

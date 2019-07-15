@@ -7,7 +7,7 @@ output: html_document
 options(repos='http://cran.rstudio.com/')
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 remove(list = ls(all.names = TRUE))
-detachAllPackages <- function() {
+YedetachAllPackages <- function() {
   basic.packages.blank <- c(
     "stats",
     "graphics",

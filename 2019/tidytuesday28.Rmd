@@ -79,7 +79,7 @@ goal_diff %>%
   geom_text(aes(label = Score),
     colour = "white", 
     nudge_y = -.5, 
-    nudge_x = .05, 
+    nudge_x = .02, 
     fontface = "bold",
     size = 3
   ) +
