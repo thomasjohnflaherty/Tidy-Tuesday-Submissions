@@ -22,7 +22,7 @@ if (!require(pacman)) {
   install.packages("pacman")
   require(pacman)
 }
-p_load(tidyverse, knitr, data.table, lubridate, zoo, hrbrthemes, tidytuesdayR, prophet)
+p_load(tidyverse, knitr, data.table, lubridate, zoo, hrbrthemes, tidytuesdayR, prophet, forecast, gridExtra)
 
 `%g%` <- function(x,y) {
   z <- paste0(y, collapse = "|")
@@ -38,16 +38,27 @@ tt_load(2019, week = 29) %>%
 ```
 
 ```{r}
-r4ds_members %>% 
-  select(ds = date, y = weekly_active_members) %>% 
-  prophet(yearly.seasonality = T, weekly.seasonality = T, daily.seasonality = T) -> fit
+fit <- r4ds_members %>% 
+  select(ds = date, 
+         y  = weekly_active_members) %>% 
+  prophet(yearly.seasonality = T, 
+          weekly.seasonality = T)
 
-future <- make_future_dataframe(fit, periods = 365/2, freq = 'day')
+future <- make_future_dataframe(fit, periods = 365.25/2, freq = 'day')
 
 m <- predict(fit, future)
 
 plot(fit, m) +
-  theme_ipsum_rc()
+  theme_ipsum_rc() +
+  labs(
+    title = "R for Data Science Online Learning Community",
+    subtitle = "Modeling and Forecasting Weekly Active Slack Members",
+    caption = "Source: https://github.com/rfordatascience/tidytuesday",
+    y = "Active Members",
+    x = ""
+  ) -> p
+
+ggsave(p, filename = "tt_2019_29.png",device = "png", dpi = 144, width = 8, height = 6)
 ```
 
 
