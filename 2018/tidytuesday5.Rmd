@@ -44,51 +44,51 @@ extrafont::loadfonts(quiet = T)
 
 tc <- c("#A5143F", "#E5350F", "#E67F18", "#F5BD0E", "#8BDEFC", "#38BAB6", "#234C68", "#4B3460")
 
-p_load(janitor, tidyverse, hrbrthemes, scales, skimr, magrittr)
+p_load(janitor, tidyverse, hrbrthemes, scales, skimr, magrittr, statebins)
 
 p_load_gh("thebioengineer/tidytuesdayR")
 ```
 
 ```{r}
-tt_load(2018, week = 4) %>% 
+tt_load(2018, week = 5) %>% 
   map(~list2env(.x[1], envir = .GlobalEnv))
 ```
 
 ```{r}
-week4_australian_salary %<>% 
-  mutate(occupation = iconv(occupation, from="Windows-1252", to="UTF-8")) %>% 
-  select(-X1)
+week5_acs2015_county_data %>% 
+  select(State, Men, Women) %>% 
+  group_by(State) %>% 
+  summarise(Ratio = sum(Men) / sum(Women)) %>% 
+  statebins(value_col = "Ratio", state_col = "State",
+            ggplot2_scale_function = viridis::scale_fill_viridis) +
+  labs(title="NOICE") +
+  theme_statebins("right")
 ```
 
 ```{r}
-week4_australian_salary %>% 
-  ggplot(aes(individuals, average_taxable_income)) + 
-  stat_density2d(
-    aes(alpha = ..level..,
-        color = gender), 
-    geom = "density2d", 
-    show.legend = F,
-    size = .75, 
-    linetype = 1
-  ) +
-  geom_point(
-    aes(alpha = .1, 
-        color = gender), 
-    show.legend = T,
-    size = 1) + 
-  scale_y_log10(
-    name = "Average Taxable Income", 
-    labels = scales::dollar_format(scale = .001, suffix = "K", accuracy = 1)) + 
-  scale_x_log10(
-    name = "Individuals", 
-    labels = scales::comma) +
-  labs(
-    title = "Australian Salaries by Gender",
-    caption = "Source: data.gov.au"
-  ) +
-  scale_color_manual(values = tc[c(3,6)], labels = c("M", "F")) +
-  theme_ft_rc() -> p
+library(statebins)
+library(tidyverse)
+library(viridis)
 
-ggsave(p, filename = "tt_4.png",device = "png", dpi = 144, width = 8, height = 6)
+data(USArrests)
+
+# make up some data for the example
+
+rownames_to_column(USArrests, "state") %>%
+  bind_rows(
+    data_frame(
+      state = c("Virgin Islands", "Puerto Rico", "New York City"),
+      Murder = rep(mean(max(USArrests$Murder),3)),
+      Assault = rep(mean(max(USArrests$Assault),3)),
+      Rape = rep(mean(max(USArrests$Rape),3)),
+      UrbanPop = c(93, 95, 100)
+    )
+  ) -> us_arrests
+
+statebins(us_arrests, value_col="Assault",
+          ggplot2_scale_function = viridis::scale_fill_viridis) +
+  labs(title="USArrests + made up data") +
+  theme_statebins("right")
 ```
+
 
