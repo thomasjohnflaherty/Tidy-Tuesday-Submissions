@@ -56,39 +56,42 @@ tt_load(2018, week = 5) %>%
 
 ```{r}
 week5_acs2015_county_data %>% 
+  filter(State != "Puerto Rico") %>% 
   select(State, Men, Women) %>% 
   group_by(State) %>% 
   summarise(Ratio = sum(Men) / sum(Women)) %>% 
   statebins(value_col = "Ratio", state_col = "State",
             ggplot2_scale_function = viridis::scale_fill_viridis) +
-  labs(title="NOICE") +
+  labs(title = "Ratio of Men to Women",
+       subtitle = "2015 Census Data") +
   theme_statebins("right")
 ```
 
 ```{r}
-library(statebins)
-library(tidyverse)
-library(viridis)
-
-data(USArrests)
-
-# make up some data for the example
-
-rownames_to_column(USArrests, "state") %>%
-  bind_rows(
-    data_frame(
-      state = c("Virgin Islands", "Puerto Rico", "New York City"),
-      Murder = rep(mean(max(USArrests$Murder),3)),
-      Assault = rep(mean(max(USArrests$Assault),3)),
-      Rape = rep(mean(max(USArrests$Rape),3)),
-      UrbanPop = c(93, 95, 100)
-    )
-  ) -> us_arrests
-
-statebins(us_arrests, value_col="Assault",
-          ggplot2_scale_function = viridis::scale_fill_viridis) +
-  labs(title="USArrests + made up data") +
+week5_acs2015_county_data %>% 
+  filter(State != "Puerto Rico") %>% 
+  group_by(State) %>% 
+  mutate(inc_r = TotalPop / sum(TotalPop, na.rm = T)) %>% 
+  summarise(Income = sum(Income * inc_r, na.rm = T)) %>% 
+  statebins(value_col = "Income", state_col = "State",
+            ggplot2_scale_function = viridis::scale_fill_viridis) +
+  labs(title = "Average Income per State",
+       subtitle = "2015 Census Data") +
   theme_statebins("right")
 ```
 
+```{r}
+week5_acs2015_county_data %>% 
+  filter(State != "Puerto Rico") %>% 
+  group_by(State) %>% 
+  mutate(inc_r = TotalPop / sum(TotalPop, na.rm = T)) %>% 
+  summarise(Rate = sum(ChildPoverty * inc_r, na.rm = T)) %>% 
+  statebins(value_col = "Rate", state_col = "State",
+            ggplot2_scale_function = viridis::scale_fill_viridis) +
+  labs(title = "Average Child Poverty Rate by State",
+       subtitle = "2015 Census Data") +
+  theme_statebins("right") -> p
+
+ggsave(p, filename = "tt_2018_5.png", device = "png", width = 6, height = 4)
+```
 
