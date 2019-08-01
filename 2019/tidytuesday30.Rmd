@@ -1,0 +1,88 @@
+---
+title: "Tidy Tuesday #30 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+# devtools::install_github("hrbrmstr/statebins") # Install newest statebins package
+
+p_load(tidyverse, knitr, data.table, lubridate, zoo, hrbrthemes, tidytuesdayR, prophet, forecast, gridExtra, statebins, gganimate, gifski, png, Hmisc, janitor)
+
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
+```
+
+```{r}
+tt_load(2019, week = 30) %>% 
+  map(~list2env(.x[1], envir = .GlobalEnv))
+```
+
+```{r}
+wildlife_impacts %>% 
+  select(state, incident_year) %>% 
+  filter(state != "N/A") %>% 
+  mutate_all(factor) %>% 
+  group_by(state, incident_year) %>%
+  summarise(total = n()) %>% 
+  complete(state, incident_year, fill = list(total = 0)) %>% 
+  ungroup() %>% 
+  mutate(total = cumsum(total),
+         state = as.character(state),
+         year  = as.numeric(as.character(incident_year))) %>% 
+  ggplot(aes(state = state, fill = total)) +
+  geom_statebins() +
+  theme_statebins(legend_position = "right") +
+  transition_time(year) +
+  labs(
+    #title = paste(x, ": Individual Nobel Laureates by Country", sep = ""),
+    subtitle = "{round(frame_time,0)}"
+    #aption = "Country refers to country of birth."
+  ) -> p
+
+animate(p, nframes = 100, fps = 24, end_pause = 100)
+
+ggsave(p, filename = "tt_2019_29.png",device = "png", dpi = 144, width = 8, height = 6)
+```
+
+```{r}
+wildlife_impacts %>% 
+  select(state, operator) %>% 
+  filter(state %in% state.abb) %>% 
+  mutate_all(factor) %>% 
+  group_by_all() %>%
+  summarise(total = n()) %>% 
+  complete(state, operator, fill = list(total = 0)) %>% 
+  ungroup() %>% 
+  ggplot(aes(state = as.character(state), fill = total)) +
+  geom_statebins() +
+  coord_equal() +
+  theme_statebins() +
+  facet_wrap(~operator) +
+  theme(plot.title=element_text(size=16, hjust=0)) +
+  theme(plot.margin = margin(30,30,30,30))
+```
+
+

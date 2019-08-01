@@ -21,17 +21,16 @@ if (!require(pacman)) {
   install.packages("pacman")
   require(pacman)
 }
-p_load(tidyverse, knitr, data.table, zoo, ggridges)
+p_load(tidyverse, knitr, data.table, zoo, ggridges, tidytuesdayR)
 
 p_load_gh("hrbrmstr/hrbrthemes")
 ```
 
 ```{r}
-path <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-05-29/week9_comic_characters.csv"
+tt_load(2018, week = 9) %>% 
+  map(~list2env(.x[1], envir = .GlobalEnv))
 
-dat <- fread(path, showProgress = F)
-
-sdat <- dat %>%
+sdat <- week9_comic_characters %>%
   filter(grepl("Male|Female", sex)) %>%
   mutate(Year = as.yearmon(date),
          Character = gsub(" Characters", "", sex)) %>%
