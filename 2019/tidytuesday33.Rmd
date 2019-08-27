@@ -1,0 +1,41 @@
+---
+title: "Tidy Tuesday #33 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      dpi = 144,
+                      fig.align = "center")
+remove(list = ls(all.names = TRUE))
+detachAllPackages <- function() {
+  basic.packages.blank <-  c("stats","graphics","grDevices","utils","datasets","methods","base")
+  basic.packages <- paste("package:", basic.packages.blank, sep = "")
+  package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1,TRUE,FALSE)]
+  package.list <- setdiff(package.list, basic.packages)
+  if (length(package.list) > 0)  for (package in package.list) {
+    detach(package, character.only = TRUE)}}
+detachAllPackages()
+if (!require(pacman)) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+# devtools::install_github("hrbrmstr/statebins") # Install newest statebins package
+
+p_load(tidyverse, knitr, data.table, lubridate, zoo, hrbrthemes, tidytuesdayR, prophet, forecast, gridExtra, statebins, gganimate, gifski, png, Hmisc, janitor, ggridges, highcharter, viridis)
+
+`%g%` <- function(x,y) {
+  z <- paste0(y, collapse = "|")
+  grepl(z, x, ignore.case = T)
+}
+
+nowt <- function(x = NULL) x
+```
+
+```{r}
+tt_load(2019, week = 33) %>% 
+  map(~list2env(.x[1], envir = .GlobalEnv))
+```

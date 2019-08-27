@@ -36,7 +36,7 @@ nowt <- function(x = NULL) x
 ```
 
 ```{r}
-tt_load(2019, week = 31) %>% 
+tt_load(2019, week = 32) %>% 
   map(~list2env(.x[1], envir = .GlobalEnv))
 ```
 
@@ -45,43 +45,14 @@ tc <- c("#A5143F", "#E5350F", "#E67F18", "#F5BD0E", "#8BDEFC", "#38BAB6", "#234C
 
 ce <- c("#303030", "#063A9C", "#36A8DC", "#BAE8F3", "#FACB6B", "#FC8D1E", "#F74543", "#7C246C")
 
-video_games %>%
-  select(publisher, metascore, owners) %>%
-  filter(!is.na(metascore)) %>%
-  group_by(publisher) %>%
-  mutate(
-    total = n(),
-    med   = median(metascore)
-  ) %>%
-  ungroup() %>%
-  nest(metascore, owners) %>%
-  arrange(med) %>%
-  top_n(10, total) %>%
-  mutate(publisher = fct_inorder(factor(paste(publisher, total, sep = " - ")))) %>%
-  unnest() %>%
-  ggplot(aes(x = metascore, y = publisher, fill = publisher)) +
-  geom_density_ridges(
-    scale = 3,
-    size = .01,
-    color = "lightgrey",
-    show.legend = F,
-    rel_min_height = 0.0001,
-    alpha = .9
-  ) +
-  theme_ipsum_rc() +
-  theme(plot.title    = element_text(hjust = 9),
-        plot.subtitle = element_text(hjust = 16.5)) +
-  scale_fill_viridis(direction = 1, discrete = T, option = "D") + 
-  labs(
-    title = "PC Game Publishers on Steam by Metascore",
-    subtitle = "Top 10 by volume with valid Metascore. Total noted by name.",
-    caption = "Source: steamspy.com",
-    y = "",
-    x = "Metacritic Metascore"
-  ) -> p
-
-ggsave(p, filename = "tt_31_2019.png", device = "png", dpi = 300, width = 7, height = 5)
-
-p
+`bob-ross` %>% 
+  mutate(EPISODE_NO = as.numeric(factor(EPISODE)),
+         SEASON     = factor(gsub("E\\d+", "", EPISODE))) %>% 
+  select(-TITLE) %>% 
+  gather(OBJECT, N, -EPISODE, -EPISODE_NO, -SEASON) %>% 
+  group_by(OBJECT, SEASON) %>% 
+  summarise(TOTAL = cumsum(N)) %>% 
+  ggplot(aes(SEASON, TOTAL, color = OBJECT)) +
+  geom_line(stat = "identity", show.legend = F)
 ```
 
